@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple Personality Test</title>
+  <style>
+    :root{
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: #5b8def;
+      --accent-2: #2dd4bf;
+      --danger: #ef4444;
+      --shadow: 0 6px 20px rgba(14,30,70,0.08);
+      --radius: 12px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      color:#0f172a;
+    }
+
+    .container{width:100%;max-width:720px}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:24px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .card-header h1{margin:0;font-size:1.5rem}
+    .subtitle{margin:4px 0 0;color:var(--muted);font-size:0.95rem}
+
+    .progress{background:#e6eef9;border-radius:999px;height:10px;overflow:hidden;margin-bottom:12px}
+    .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%;transition:width 300ms ease}
+
+    .question-card{padding:12px 6px}
+    .q-number{font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+    .question-text{margin:6px 0 14px;font-size:1.15rem}
+
+    .options{display:grid;gap:10px}
+    .option{
+      border-radius:10px;
+      background:#f8fafc;
+      padding:12px;
+      border:1px solid #e6eef9;
+      cursor:pointer;
+      transition:transform 120ms ease, box-shadow 120ms ease;
+      user-select:none;
+    }
+    .option:hover{transform:translateY(-3px)}
+    .option.selected{background:linear-gradient(90deg,rgba(91,141,239,0.08),rgba(45,212,191,0.06));border-color:rgba(91,141,239,0.65);box-shadow:0 6px 18px rgba(91,141,239,0.08)}
+
+    .nav{display:flex;justify-content:space-between;margin-top:14px}
+    .btn{
+      border:0;padding:10px 16px;border-radius:10px;background:var(--accent);color:white;font-weight:600;cursor:pointer;
+      box-shadow:0 6px 18px rgba(91,141,239,0.12)
+    }
+    .btn[disabled]{opacity:0.5;cursor:not-allowed;box-shadow:none}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(91,141,239,0.15);box-shadow:none}
+
+    .result-area{padding:14px}
+    .result-area.hidden{display:none}
+    .card-footer{text-align:center;color:var(--muted);font-size:0.85rem;margin-top:4px}
+
+    /* Responsive */
+    @media (max-width:480px){
+      .card{padding:18px}
+      .question-text{font-size:1rem}
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="card">
+      <header class="card-header">
+        <h1>Personality Test</h1>
+        <p class="subtitle">Answer the short quiz to discover your personality type.</p>
+      </header>
+
+      <section id="quiz-area" class="quiz-area">
+        <div id="progress" class="progress">
+          <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+
+        <div id="question-card" class="question-card">
+          <div id="q-number" class="q-number">Question 1 of 6</div>
+          <h2 id="question-text" class="question-text">Loading…</h2>
+
+          <div id="options" class="options"></div>
+        </div>
+
+        <div class="nav">
+          <button id="prev-btn" class="btn ghost" disabled>Prev</button>
+          <button id="next-btn" class="btn" disabled>Next</button>
+        </div>
+      </section>
+
+      <section id="result-area" class="result-area hidden">
+        <h2 id="result-title">Your personality type:</h2>
+        <p id="result-desc"></p>
+        <button id="restart-btn" class="btn ghost">Take Again</button>
+      </section>
+
+      <footer class="card-footer">
+        <small>Built with HTML · CSS · JavaScript — simple and static.</small>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    // script.js - simple personality quiz logic
+
+    const questions = [
+      {
+        q: "When you have free time, you are most likely to:",
+        options: [
+          { text: "Read, plan or learn something new", type: "Analytical" },
+          { text: "Create — write, draw or make something", type: "Creative" },
+          { text: "Hang out with friends and socialize", type: "Social" },
+          { text: "Tackle a practical project or organize things", type: "Practical" }
+        ]
+      },
+      {
+        q: "In a group project you usually:",
+        options: [
+          { text: "Research and check facts", type: "Analytical" },
+          { text: "Bring new ideas and fresh perspectives", type: "Creative" },
+          { text: "Keep the team mood positive and connected", type: "Social" },
+          { text: "Make sure tasks run on time and are finished", type: "Practical" }
+        ]
+      },
+      {
+        q: "Which describes you best at a party?",
+        options: [
+          { text: "I observe and have a few deep conversations", type: "Analytical" },
+          { text: "I enjoy performing or being playful", type: "Creative" },
+          { text: "I'm the center of energy and meet many people", type: "Social" },
+          { text: "I prefer to help set up or manage things behind the scenes", type: "Practical" }
+        ]
+      },
+      {
+        q: "When solving problems you prefer to:",
+        options: [
+          { text: "Break it into pieces and analyze", type: "Analytical" },
+          { text: "Try an unconventional idea", type: "Creative" },
+          { text: "Ask others for opinions and consensus", type: "Social" },
+          { text: "Follow proven steps and checklists", type: "Practical" }
+        ]
+      },
+      {
+        q: "Your workspace is usually:",
+        options: [
+          { text: "Neat with notes and diagrams", type: "Analytical" },
+          { text: "Colorful, with projects and mood items", type: "Creative" },
+          { text: "Open and welcoming to visitors", type: "Social" },
+          { text: "Organized for efficiency", type: "Practical" }
+        ]
+      },
+      {
+        q: "What motivates you most?",
+        options: [
+          { text: "Understanding how things work", type: "Analytical" },
+          { text: "Making something original", type: "Creative" },
+          { text: "Connecting with people and being helpful", type: "Social" },
+          { text: "Seeing results and getting things done", type: "Practical" }
+        ]
+      }
+    ];
+
+    const descriptions = {
+      Analytical: {
+        title: "Analytical",
+        desc: "You enjoy thinking deeply, understanding systems, and making decisions based on logic and evidence."
+      },
+      Creative: {
+        title: "Creative",
+        desc: "You enjoy imagination, originality, and expressing ideas in new ways — you see possibilities others may miss."
+      },
+      Social: {
+        title: "Social",
+        desc: "You gain energy from people. You are empathetic, communicative, and enjoy collaboration and community."
+      },
+      Practical: {
+        title: "Practical",
+        desc: "You favor action and reliability — organizing, completing tasks, and making sure things work smoothly."
+      }
+    };
+
+    let current = 0;
+    const answers = {}; // stores chosen type for each question index
+
+    // DOM elements
+    const qNumberEl = document.getElementById('q-number');
+    const qTextEl = document.getElementById('question-text');
+    const optionsEl = document.getElementById('options');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const quizArea = document.getElementById('quiz-area');
+    const resultArea = document.getElementById('result-area');
+    const resultTitle = document.getElementById('result-title');
+    const resultDesc = document.getElementById('result-desc');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function renderQuestion(index) {
+      const item = questions[index];
+      qNumberEl.textContent = `Question ${index + 1} of ${questions.length}`;
+      qTextEl.textContent = item.q;
+
+      // render options
+      optionsEl.innerHTML = '';
+      item.options.forEach((opt, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'option';
+        btn.tabIndex = 0;
+        btn.role = 'button';
+        btn.dataset.type = opt.type;
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + i)}.</strong> ${opt.text}`;
+        // mark previously selected
+        if (answers[index] && answers[index] === opt.type) btn.classList.add('selected');
+
+        btn.addEventListener('click', () => selectOption(index, opt.type, btn));
+        btn.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') selectOption(index, opt.type, btn);
+        });
+
+        optionsEl.appendChild(btn);
+      });
+
+      prevBtn.disabled = (index === 0);
+      // enable next only if answer existing
+      nextBtn.disabled = !answers[index];
+      nextBtn.textContent = (index === questions.length - 1) ? 'See Result' : 'Next';
+
+      // update progress
+      const pct = Math.round(((index) / questions.length) * 100);
+      progressBar.style.width = pct + '%';
+    }
+
+    function selectOption(qIndex, type, btnEl) {
+      // save answer
+      answers[qIndex] = type;
+      // clear selection style
+      Array.from(optionsEl.children).forEach(ch => ch.classList.remove('selected'));
+      // mark current
+      btnEl.classList.add('selected');
+      nextBtn.disabled = false;
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (current > 0) {
+        current--;
+        renderQuestion(current);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (!answers[current]) return; // should be prevented by disabled state
+      if (current < questions.length - 1) {
+        current++;
+        renderQuestion(current);
+      } else {
+        // finished
+        showResult();
+      }
+    });
+
+    function showResult() {
+      // count types
+      const tally = {};
+      Object.values(answers).forEach(type => {
+        tally[type] = (tally[type] || 0) + 1;
+      });
+
+      // find max
+      let bestType = null;
+      let bestScore = -1;
+      for (const [type, score] of Object.entries(tally)) {
+        if (score > bestScore) {
+          bestScore = score;
+          bestType = type;
+        }
+      }
+
+      // handle tie (multiple with same score)
+      const topTypes = Object.entries(tally).filter(([,s]) => s === bestScore).map(([t]) => t);
+      let finalType = bestType;
+      if (topTypes.length > 1) {
+        // if tie, join them into a combined result
+        finalType = topTypes.join(' / ');
+      }
+
+      // show result
+      quizArea.classList.add('hidden');
+      resultArea.classList.remove('hidden');
+
+      // show a friendly result title and desc
+      const displayTitle = topTypes.length === 1 ? descriptions[finalType].title : finalType;
+      const displayDesc = topTypes.length === 1 ? descriptions[finalType].desc
+        : `You have a mixed profile: ${finalType}. You show strengths from multiple areas — that's versatile!`;
+
+      resultTitle.textContent = `Your personality: ${displayTitle}`;
+      resultDesc.textContent = displayDesc;
+
+      // set progress bar to 100%
+      progressBar.style.width = '100%';
+    }
+
+    restartBtn.addEventListener('click', () => {
+      // reset
+      current = 0;
+      for (const k in answers) delete answers[k];
+      quizArea.classList.remove('hidden');
+      resultArea.classList.add('hidden');
+      renderQuestion(0);
+    });
+
+    // initial render
+    document.addEventListener('DOMContentLoaded', () => renderQuestion(0));
+  </script>
+</body>
+</html>
